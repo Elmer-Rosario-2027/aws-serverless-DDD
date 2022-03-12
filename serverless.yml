@@ -1,0 +1,87 @@
+
+service: Domain-Driven-Design
+frameworkVersion: 2 || 3
+
+custom:
+  tableName: DomainDrivenDesign
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      heapInitial: 200m
+      heapMax: 1g
+      migrate: true
+      seed: true
+      convertEmptyValues: true
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: us-east-2
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      #Resource:
+      #  - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tableName} 
+  environment:
+    AWS_DYNAMODB: ${self:custom.tableName}
+
+functions:
+  postSaveVehicle:
+    handler: src/aplication/routes.api.handlerPost
+    events: # The events that trigger this function
+      - http: 
+          path: swapi/vehicle
+          method: post
+  getListVehicles:
+    handler: src/aplication/routes.api.handlerGet
+    events: # The events that trigger this function
+      - http: 
+          path: swapi/vehicles
+          method: get
+# you can add CloudFormation resource templates here
+resources:
+  Resources:
+    UsersDynamoDBTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        TableName: ${self:custom.tableName}
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+# Serverless plugins
+plugins:
+  - serverless-plugin-typescript
+  - serverless-offline
+  - serverless-dynamodb-local
+
